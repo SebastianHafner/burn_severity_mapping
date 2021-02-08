@@ -1,0 +1,58 @@
+SEED: 7
+DEBUG: False
+SAVE_CHECKPOINTS: [100, 150, 200]
+OUTPUT_BASE_DIR: '/storage/shafner/slum_extent_mapping/networks/'
+
+MODEL:
+  TYPE: 'unet'
+  TOPOLOGY: [64, 128,]
+  OUT_CHANNELS: 2
+  IN_CHANNELS: 10
+  LOSS_TYPE: 'CrossEntropyLoss'
+
+DATALOADER:
+  NUM_WORKER: 16
+  SHUFFLE: True
+
+DATASET:
+  PATH: '/storage/shafner/slum_extent_mapping/kigali_dataset'
+  LABEL:
+    NAME: 'classfractions'
+    SOFT_LABELS: True
+    CLASSES: ['water', 'forest', 'agri1', 'bareland', 'pavedroad', 'unpavedroad', 'building', 'grassland', 'shadows']
+    CLASS_COLORS: ['#0000ff', '#008000', '#a3c000', '#ff8000', '#000000', '#ffff00', '#b00000', '#00ff00', '#787878']
+    INCLUDE_SLUMS: False
+    SLUM_CLASSES: []
+    REMAPPER:
+      ENABLE: True
+      REMAPPED_CLASSES: ['imp', 'bg']
+      REMAPPED_COLORS: ['#b00000', '#ffffff']
+      REMAP_FUNC: ['bg', 'bg', 'bg', 'bg', 'imp', 'bg', 'imp', 'bg', 'imp']
+
+  SATELLITE:
+    NAME: 'sentinel2'
+    AVAILABLE_S2_BANDS: ['B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B11', 'B12']
+    S2_BANDS: ['B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B11', 'B12']
+    S2_RESCALE_FACTOR: 10_000
+    S2_RES: 10
+    AVAILABLE_WV_BANDS: ['b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'b7', 'b8']
+    WV_BANDS: ['b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'b7', 'b8']
+    WW_RESCALE_FACTOR: 1_000
+    WW_RES: 0.5
+
+TRAINER:
+  LR: 1e-4
+  BATCH_SIZE: 16
+  OPTIMIZER: 'adamw'
+  WEIGHT_DECAY: 1e-2
+  EPOCHS: 201
+  LR_DECAY_FACTOR: 1
+  LR_DECAY_INTERVAL: 1e10
+
+AUGMENTATION:
+  OVERSAMPLING: False # none, pixel or change
+  CROP_TYPE: 'none' # uniform or importance
+  CROP_SIZE: 64
+  RANDOM_FLIP: True
+  RANDOM_ROTATE: True
+  COLOR: True
