@@ -1,0 +1,1 @@
+# burn_severity_mapping
