@@ -1,13 +1,13 @@
 SEED: 7
 DEBUG: False
-CHECKPOINT: 5
+CHECKPOINT: 10
 SAVE_CHECKPOINTS: [10]
 OUTPUT_BASE_DIR: '/storage/shafner/burn_severity_mapping/networks/'
 
 MODEL:
   TYPE: 'unet'
   TOPOLOGY: [64, 128,]
-  OUT_CHANNELS: 2
+  OUT_CHANNELS: 4
   IN_CHANNELS: 10
   LOSS_TYPE: 'CrossEntropyLoss'
 
@@ -17,9 +17,9 @@ DATALOADER:
 
 DATASET:
   PATH: '/storage/shafner/burn_severity_mapping/wildfire_dataset'
-  LABEL: 'dnbr'
-  THRESHOLDS: [0.5]
-  CLASSES: ['notburnt', 'burnt']
+  LABEL: 'rbr'
+  THRESHOLDS: [0.1, 0.4, 0.6]
+  CLASSES: ['no', 'low', 'moderate', 'high']
   MODE: 'optical'
   AVAILABLE_S2_BANDS: ['B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B11', 'B12']
   S2_BANDS: ['B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B11', 'B12']
@@ -28,7 +28,7 @@ DATASET:
   S1_BANDS: ['kCR', 'kVH', 'kVV']
 
 TRAINER:
-  LR: 1e-4
+  LR: 1e-5
   BATCH_SIZE: 8
   OPTIMIZER: 'adamw'
   WEIGHT_DECAY: 1e-2

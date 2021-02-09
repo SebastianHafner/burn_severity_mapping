@@ -1,6 +1,5 @@
 import matplotlib.colors as colors
 import numpy as np
-from utils.datasets import LandCoverDataset
 
 # TODO: add visualization functions for worldview image and sentinel-2 image
 

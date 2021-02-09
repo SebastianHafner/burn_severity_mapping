@@ -1,87 +1,63 @@
 import torch
 from torch.utils import data as torch_data
 from torchvision import transforms
+from abc import abstractmethod
 import numpy as np
 from utils.augmentations import *
 from utils.geofiles import *
 import cv2
 
 
-class WildfireDataset(torch.utils.data.Dataset):
-    def __init__(self, cfg, run_type: str, no_augmentation: bool = False):
-        super().__init__()
+class AbstractDataset(torch.utils.data.Dataset):
 
+    def __init__(self, cfg):
+        super().__init__()
         self.cfg = cfg
         self.root_path = Path(cfg.DATASET.PATH)
-        self.site = 'elephanthill'
-
-        # loading samples
-        samples_file = self.root_path / self.site / f'{run_type}_samples.json'
-        self.samples = load_json(samples_file)
-        self.length = len(self.samples)
-
-        if no_augmentation:
-            self.transform = transforms.Compose([Numpy2Torch()])
-        else:
-            self.transform = compose_transformations(cfg)
 
         # feature selection
         self.s1_feature_selection = self.get_s1_feature_selection()
         self.s2_feature_selection = self.get_s2_feature_selection()
 
-    def __getitem__(self, index) -> dict:
+    @abstractmethod
+    def __getitem__(self, index: int) -> dict:
+        pass
 
-        sample = self.samples[index]
-        i = sample['i']
-        j = sample['j']
-
+    def get_img(self, site: str, x: int, y: int) -> np.ndarray:
         mode = self.cfg.DATASET.MODE
         if mode == 'optical':
-            img = self.get_s2_data(i, j)
+            img, _, _ = self.get_s2_data(site, x, y)
+            img = img[:, :, self.s2_feature_selection]
         elif mode == 'sar':
-            img = self.get_s1_data(i, j)
+            img, _, _ = self.get_s1_data(site, x, y)
+            img = img[:, :, self.s1_feature_selection]
         else:
-            s1_img = self.get_s1_data(i, j)
-            s2_img = self.get_s2_data(i, j)
+            s1_img, _, _ = self.get_s1_data(site, x, y)
+            s1_img = s1_img[:, :, self.s2_feature_selection]
+            s2_img, _, _ = self.get_s2_data(site, x, y)
+            s2_img = s2_img[:, :, self.s1_feature_selection]
             img = np.concatenate((s1_img, s2_img), axis=-1)
+        return img
 
-        label = self.get_label(i, j)
-
-        img, label = self.transform((img, label))
-
-        item = {
-            'img': img,
-            'label': label,
-            'site': sample['site'],
-            'i': i,
-            'j': j,
-        }
-
-        return item
-
-    def get_s2_data(self, i: int, j: int) -> np.ndarray:
+    def get_s2_data(self, site: str, x: int, y: int) -> tuple:
         lvl = self.cfg.DATASET.S2_PROCESSING_LEVEL
-        file = self.root_path / self.site / f's2{lvl}' / f'{self.site}_s2{lvl}{i:010d}-{j:010d}.tif'
-        img, _, _ = read_tif(file)
-        img = img[:, :, self.s2_feature_selection]
-        return img.astype(np.float32)
+        file = self.root_path / site / f's2{lvl}' / f'{site}_s2{lvl}{y:010d}-{x:010d}.tif'
+        img, geotransform, crs = read_tif(file)
+        return img.astype(np.float32), geotransform, crs
 
-    def get_s1_data(self, i: int, j: int) -> np.ndarray:
-        file = self.root_path / self.site / f's1' / f'{self.site}_s1{i:010d}-{j:010d}.tif'
-        img, _, _ = read_tif(file)
-        img = img[:, :, self.s1_feature_selection]
-        return img.astype(np.float32)
+    def get_s1_data(self, site: str, x: int, y: int) -> tuple:
+        file = self.root_path / site / f's1' / f'{site}_s1{y:010d}-{x:010d}.tif'
+        img, geotransform, crs = read_tif(file)
+        return img.astype(np.float32), geotransform, crs
 
-    def get_label(self, i: int, j: int) -> np.ndarray:
+    def get_label(self, site: str, x: int, y: int) -> tuple:
         label = self.cfg.DATASET.LABEL
-        file = self.root_path / self.site / label / f'{self.site}_{label}{i:010d}-{j:010d}.tif'
-        img, _, _ = read_tif(file)
-
+        file = self.root_path / site / label / f'{site}_{label}{y:010d}-{x:010d}.tif'
+        img, geotransform, crs = read_tif(file)
         thresholds = self.cfg.DATASET.THRESHOLDS
         for i, thresh in enumerate(thresholds):
             img[img < thresh] = i
         img[img >= thresholds[-1]] = len(thresholds)
-
         return img.astype(np.float32)
 
     def get_s2_feature_selection(self):
@@ -96,13 +72,62 @@ class WildfireDataset(torch.utils.data.Dataset):
         band_selection = self.get_feature_selection(available_bands, selected_bands)
         return band_selection
 
-    @ staticmethod
+    @staticmethod
     def get_feature_selection(bands, selection):
         band_selection = [False for _ in range(len(bands))]
         for selected_band in selection:
             i = bands.index(selected_band)
             band_selection[i] = True
         return band_selection
+
+    def get_n_features(self) -> int:
+        mode = self.cfg.DATASET.MODE
+        if mode == 'sar':
+            return len(self.s1_feature_selection)
+        if mode == 'optical':
+            return len(self.s2_feature_selection)
+        else:
+            return len(self.s1_feature_selection) + len(self.s2_feature_selection)
+
+
+class TrainingDataset(AbstractDataset):
+    def __init__(self, cfg, run_type: str, no_augmentation: bool = False):
+        super().__init__(cfg)
+
+        # TODO: change this to support multiple sites
+        self.site = 'elephanthill'
+
+        # loading samples
+        samples_file = self.root_path / self.site / f'{run_type}_samples.json'
+        self.samples = load_json(samples_file)
+        self.length = len(self.samples)
+
+        if no_augmentation:
+            self.transform = transforms.Compose([Numpy2Torch()])
+        else:
+            self.transform = compose_transformations(cfg)
+
+    def __getitem__(self, index: int) -> dict:
+
+        sample = self.samples[index]
+        site = sample['site']
+        x = sample['x']
+        y = sample['y']
+
+        img = self.get_img(site, x, y)
+        label = self.get_label(site, x, y)
+
+        img, label = self.transform((img, label))
+
+        item = {
+            'img': img,
+            'label': label,
+            'site': site,
+            'x': x,
+            'y': y,
+        }
+
+        return item
 
     def __len__(self):
         return self.length
@@ -115,92 +140,72 @@ class WildfireDataset(torch.utils.data.Dataset):
 
 
 # dataset for classifying a scene
-class TilesInferenceDataset(torch.utils.data.Dataset):
+class InferenceDataset(AbstractDataset):
 
-    def __init__(self, cfg, year: int):
-        super().__init__()
+    def __init__(self, cfg, site: str):
+        super().__init__(cfg)
 
-        self.cfg = cfg
-        self.year = year
-        self.root_path = Path(cfg.DATASET.PATH) / 'time_series' / str(year)
+        self.site = site
         self.transform = transforms.Compose([Numpy2Torch()])
 
-        # getting all files
-        files = [f for f in self.root_path.glob('**/*')]
-        self.length = len(files)
+        # getting all tiles
+        tiles_file = self.root_path / site / 'samples.json'
+        self.tiles = load_json(tiles_file)
+        self.length = len(self.tiles)
 
-        available_bands = cfg.DATASET.SATELLITE.AVAILABLE_S2_BANDS
-        selected_bands = cfg.DATASET.SATELLITE.S2_BANDS
-        self.feature_selection = self._get_feature_selection(available_bands, selected_bands)
-        self.n_features = len(selected_bands)
+        self.n_features = self.get_n_features()
+        self.n_out = cfg.MODEL.OUT_CHANNELS
 
-        self.n_out = len(cfg.DATASET.LABEL.REMAPPER.REMAPPED_CLASSES)
-
-        self.basename = basename_from_file(files[0])
-        patch_id = f'{0:010d}-{0:010d}'
-        patch, self.geotransform, self.crs = self._load_img(patch_id)
-        self.patch_size, _, _ = patch.shape
+        tile, self.geotransform, self.crs = self.get_s1_data(site, 0, 0)
+        self.tile_size, _, _ = tile.shape
 
         # getting patch ids and computing extent
-        self.patch_ids = [file2id(f) for f in files]
-        self.coords = [id2yx(patch_id) for patch_id in self.patch_ids]
-        self.max_y = max([c[0] for c in self.coords])
-        self.max_x = max([c[1] for c in self.coords])
+        self.max_x = max([tile['x'] for tile in self.tiles])
+        self.max_y = max([tile['y'] for tile in self.tiles])
 
-    def __getitem__(self, patch_id_center):
+    def __getitem__(self, index_center: int) -> dict:
 
-        y_center, x_center = id2yx(patch_id_center)
+        tile_center = self.tiles[index_center]
+        x_center, y_center = tile_center['x'], tile_center['y']
+        tile_size = self.tile_size
 
-        extended_patch = np.zeros((3 * self.patch_size, 3 * self.patch_size, self.n_features), dtype=np.float32)
+        extended_tile = np.zeros((3 * tile_size, 3 * tile_size, self.n_features), dtype=np.float32)
         for i in range(3):
             for j in range(3):
-                y = y_center + (i - 1) * self.patch_size
-                x = x_center + (j - 1) * self.patch_size
-                patch_id = f'{y:010d}-{x:010d}'
-                if self._patch_id_exists(patch_id):
-                    patch, _, _ = self._load_img(patch_id)
+                x = x_center + (j - 1) * tile_size
+                y = y_center + (i - 1) * tile_size
+                if self._tile_exists(x, y):
+                    tile = self.get_img(self.site, x, y)
                 else:
-                    patch = np.zeros((self.patch_size, self.patch_size, self.n_features), dtype=np.float32)
-                m, n, _ = patch.shape
-                i_start = i * self.patch_size
-                i_end = i_start + m
-                j_start = j * self.patch_size
-                j_end = j_start + n
-                extended_patch[i_start:i_end, j_start:j_end, :] = patch
+                    tile = np.zeros((tile_size, tile_size, self.n_features), dtype=np.float32)
 
-        dummy_label = np.zeros((extended_patch.shape[0], extended_patch.shape[1], 1), dtype=np.float32)
-        extended_patch, _ = self.transform((extended_patch, dummy_label))
+                m, n, _ = tile.shape
+                y_start = i * tile_size
+                y_end = y_start + m
+                x_start = j * tile_size
+                x_end = x_start + n
+                extended_tile[y_start:y_end, x_start:x_end, :] = tile
+
+        dummy_label = np.zeros((extended_tile.shape[0], extended_tile.shape[1], 1), dtype=np.float32)
+        extended_tile, _ = self.transform((extended_tile, dummy_label))
 
         item = {
-            'x': extended_patch,
-            'i': y_center,
-            'j': x_center,
-            'patch_id': patch_id_center,
+            'img': extended_tile,
+            'x': x_center,
+            'y': y_center,
         }
 
         return item
 
-    def _load_img(self, patch_id):
-        file = self.root_path / f'{self.basename}_{patch_id}.tif'
-        img, transform, crs = read_tif(file)
-        img = img[:, :, self.feature_selection] / self.cfg.DATASET.SATELLITE.S2_RESCALE_FACTOR
-        return np.nan_to_num(img).astype(np.float32), transform, crs
-
-    def _patch_id_exists(self, patch_id):
-        return True if patch_id in self.patch_ids else False
-
-    @ staticmethod
-    def _get_feature_selection(bands, selection):
-        band_selection = [False for _ in range(len(bands))]
-        for selected_band in selection:
-            i = bands.index(selected_band)
-            band_selection[i] = True
-        return band_selection
+    def _tile_exists(self, x: int, y: int) -> bool:
+        if 0 <= x <= self.max_x and 0 <= y <= self.max_y:
+            return True
+        return False
 
     def get_arr(self, dtype=np.uint8):
-        height = self.max_y + self.patch_size
-        width = self.max_x + self.patch_size
-        return np.zeros((height, width, self.n_out), dtype=dtype)
+        height = self.max_y + self.tile_size
+        width = self.max_x + self.tile_size
+        return np.zeros((height, width), dtype=dtype)
 
     def get_geo(self):
         return self.geotransform, self.crs
@@ -210,81 +215,3 @@ class TilesInferenceDataset(torch.utils.data.Dataset):
 
     def __str__(self):
         return f'Dataset with {self.length} tiles.'
-
-
-# dataset for classifying a scene
-class InferenceDataset(torch.utils.data.Dataset):
-
-    def __init__(self, cfg, s2_file: Path = None, patch_size: int = 256):
-        super().__init__()
-
-        self.cfg = cfg
-        self.s2_file = s2_file
-
-        arr, self.geotransform, self.crs = read_tif(s2_file)
-        self.height, self.width, _ = arr.shape
-
-        self.patch_size = patch_size
-        self.rf = 8
-        self.n_rows = (self.height - self.rf) // patch_size
-        self.n_cols = (self.width - self.rf) // patch_size
-        self.length = self.n_rows * self.n_cols
-
-        self.transform = transforms.Compose([Numpy2Torch()])
-
-        s2_bands = ['B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A', 'B11', 'B12']
-        selected_bands = cfg.DATASET.SATELLITE.SENTINEL2_BANDS
-        self.band_selection = self.get_band_selection(s2_bands, selected_bands)
-
-
-
-    def __getitem__(self, index):
-
-        i_start = index // self.n_cols * self.patch_size
-        j_start = index % self.n_cols * self.patch_size
-        # check for border cases and add padding accordingly
-        # top left corner
-        if i_start == 0 and j_start == 0:
-            i_end = self.patch_size + 2 * self.rf
-            j_end = self.patch_size + 2 * self.rf
-        # top
-        elif i_start == 0:
-            i_end = self.patch_size + 2 * self.rf
-            j_end = j_start + self.patch_size + self.rf
-            j_start -= self.rf
-        elif j_start == 0:
-            j_end = self.patch_size + 2 * self.rf
-            i_end = i_start + self.patch_size + self.rf
-            i_start -= self.rf
-        else:
-            i_end = i_start + self.patch_size + self.rf
-            i_start -= self.rf
-            j_end = j_start + self.patch_size + self.rf
-            j_start -= self.rf
-
-        img = self._get_sentinel_data(i_start, i_end, j_start, j_end)
-        img, _ = self.transform((img, np.empty((1, 1, 1))))
-        patch = {
-            'x': img,
-            'row': (i_start, i_end),
-            'col': (j_start, j_end)
-        }
-
-        return patch
-
-    def _get_sentinel_data(self, i_start: int, i_end: int, j_start: int, j_end: int):
-        img_patch = self.img[i_start:i_end, j_start:j_end, ]
-        return np.nan_to_num(img_patch).astype(np.float32)
-
-    def _get_feature_selection(self, features, selection):
-        feature_selection = [False for _ in range(len(features))]
-        for feature in selection:
-            i = features.index(feature)
-            feature_selection[i] = True
-        return feature_selection
-
-    def __len__(self):
-        return self.length
-
-
-

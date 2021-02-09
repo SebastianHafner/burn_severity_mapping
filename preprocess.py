@@ -26,27 +26,26 @@ def create_samples_files(path: Path, site: str, split: float = 0.2, seed: int = 
     np.random.seed(seed)
     random_numbers = np.random.rand(len(mask_files))
 
-    samples_train = []
-    samples_validation = []
+    samples_train, samples_validation, samples = [], [], []
     for file, rand in zip(mask_files, random_numbers):
-        if not is_square(file) or has_masked_pixels(file):
-            continue
         coords = file.stem[-21:]
-        i, j = coords.split('-')
-
+        y, x = coords.split('-')
         sample = {
             'site': site,
-            'i': int(i),
-            'j': int(j),
+            'x': int(x),
+            'y': int(y),
         }
 
-        if rand > split:
-            samples_train.append(sample)
-        else:
-            samples_validation.append(sample)
+        if is_square(file) and not has_masked_pixels(file):
+            if rand > split:
+                samples_train.append(sample)
+            else:
+                samples_validation.append(sample)
+        samples.append(sample)
 
     write_json(ROOT_PATH / site / f'train_samples.json', samples_train)
     write_json(ROOT_PATH / site / f'validation_samples.json', samples_validation)
+    write_json(ROOT_PATH / site / f'samples.json', samples)
 
 
 if __name__ == '__main__':

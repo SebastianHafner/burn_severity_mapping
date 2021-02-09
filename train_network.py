@@ -38,7 +38,7 @@ def train(net, cfg):
     net.to(device)
 
     # reset the generators
-    dataset = datasets.WildfireDataset(cfg, 'train')
+    dataset = datasets.TrainingDataset(cfg, 'train')
     dataloader_kwargs = {
         'batch_size': cfg.TRAINER.BATCH_SIZE,
         'num_workers': 0 if cfg.DEBUG else cfg.DATALOADER.NUM_WORKER,
@@ -51,6 +51,7 @@ def train(net, cfg):
         dataloader_kwargs['shuffle'] = False
 
     dataloader = torch_data.DataLoader(dataset, **dataloader_kwargs)
+    steps_per_epoch = len(dataloader)
 
     def get_optimizer(net, optim, lr, wd):
         if optim == 'adam':
@@ -65,8 +66,11 @@ def train(net, cfg):
     # loss function
     loss_type = cfg.MODEL.LOSS_TYPE
     if loss_type == 'CrossEntropyLoss':
+        criterion = torch.nn.CrossEntropyLoss()
+    elif loss_type == 'SoftCrossEntropyLoss':
         criterion = soft_cross_entropy_loss
     elif loss_type == 'WeightedCrossEntropyLoss':
+        # TODO: this is not implemented
         class_weights = torch.tensor(dataset.class_weights).to(device)
         criterion = torch.nn.CrossEntropyLoss(weight=class_weights)
     elif loss_type == 'RMSE':
@@ -77,13 +81,15 @@ def train(net, cfg):
     save_path = Path(cfg.OUTPUT_BASE_DIR) / cfg.NAME
     save_path.mkdir(exist_ok=True)
 
-    global_step = 0
+    global_step = epoch_float = 0
     epochs = cfg.TRAINER.EPOCHS
-    for epoch in range(epochs):
+    for epoch in range(1, epochs + 1):
+        print(f'epoch {epoch} / {epochs}')
 
         loss_tracker = 0
         net.train()
         if epoch != 0 and (epoch % cfg.TRAINER.LR_DECAY_INTERVAL == 0):
+            print('learning rate decay')
             learning_rate = learning_rate / cfg.TRAINER.LR_DECAY_FACTOR
             optimizer = get_optimizer(net, cfg.TRAINER.OPTIMIZER, learning_rate, cfg.TRAINER.WEIGHT_DECAY)
 
@@ -96,32 +102,37 @@ def train(net, cfg):
 
             logits = net(img)
 
-            loss = criterion(logits, label.long())
+            loss = criterion(logits, label.squeeze().long())
             loss_tracker += loss.item()
             loss.backward()
             optimizer.step()
 
             global_step += 1
+            epoch_float = global_step / steps_per_epoch
 
             if cfg.DEBUG:
                 break
 
-        print(f'epoch {epoch} / {cfg.TRAINER.EPOCHS}')
         print(f'loss: {loss_tracker:.3f}')
-        model_eval(net, cfg, device, 'train', epoch, global_step)
-        model_eval(net, cfg, device, 'validation', epoch, global_step)
+        if not cfg.DEBUG:
+            assert (epoch == epoch_float)
+            print(f'Logging step {global_step} (epoch {epoch_float:.2f}).')
+            model_eval(net, cfg, device, 'train', epoch_float, global_step)
+            model_eval(net, cfg, device, 'validation', epoch_float, global_step)
+        else:
+            break
+        # end of epoch
 
-        if epoch in cfg.SAVE_CHECKPOINTS:
+        if epoch in cfg.SAVE_CHECKPOINTS and not cfg.DEBUG:
             print(f'saving network', flush=True)
             net_file = Path(cfg.OUTPUT_BASE_DIR) / f'{cfg.NAME}_{epoch}.pkl'
             torch.save(net.state_dict(), net_file)
-        # end of epoch
 
 
 def model_eval(net, cfg, device, run_type, epoch, step, max_samples: int = 100):
     measurer = MultiClassEvaluation(cfg.MODEL.OUT_CHANNELS)
 
-    dataset = datasets.WildfireDataset(cfg, run_type, no_augmentation=True)
+    dataset = datasets.TrainingDataset(cfg, run_type, no_augmentation=True)
 
     def evaluation_callback(x, y, z):
         # x img y label z logits
