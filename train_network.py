@@ -38,8 +38,7 @@ def train(net, cfg):
     net.to(device)
 
     # reset the generators
-    dataset = datasets.LandCoverDataset(cfg, 'train')
-    # TODO: add print for dataset
+    dataset = datasets.WildfireDataset(cfg, 'train')
     dataloader_kwargs = {
         'batch_size': cfg.TRAINER.BATCH_SIZE,
         'num_workers': 0 if cfg.DEBUG else cfg.DATALOADER.NUM_WORKER,
@@ -68,7 +67,6 @@ def train(net, cfg):
     if loss_type == 'CrossEntropyLoss':
         criterion = soft_cross_entropy_loss
     elif loss_type == 'WeightedCrossEntropyLoss':
-        # TODO: make this one work for soft labels
         class_weights = torch.tensor(dataset.class_weights).to(device)
         criterion = torch.nn.CrossEntropyLoss(weight=class_weights)
     elif loss_type == 'RMSE':
@@ -120,11 +118,10 @@ def train(net, cfg):
         # end of epoch
 
 
-# TODO: maybe compute RMSE for soft labels
 def model_eval(net, cfg, device, run_type, epoch, step, max_samples: int = 100):
     measurer = MultiClassEvaluation(cfg.MODEL.OUT_CHANNELS)
 
-    dataset = datasets.LandCoverDataset(cfg, run_type, no_augmentation=True)
+    dataset = datasets.WildfireDataset(cfg, run_type, no_augmentation=True)
 
     def evaluation_callback(x, y, z):
         # x img y label z logits
@@ -135,23 +132,24 @@ def model_eval(net, cfg, device, run_type, epoch, step, max_samples: int = 100):
 
     print(f'Computing {run_type} overall accuracy', end=' ', flush=True)
 
+    # total assessment
     oacc = measurer.overall_accuracy()
-    rmse = measurer.root_mean_square_error()
     if not cfg.DEBUG:
         wandb.log({
             f'{run_type} oacc': oacc,
-            f'{run_type} rmse': rmse,
             'step': step,
             'epoch': epoch,
         })
 
+    # per-class assessment
+    classes = cfg.DATASET.CLASSES
     per_class_uacc = measurer.per_class_uaccuracy()
     per_class_pacc = measurer.per_class_paccuracy()
-    for i, (uacc, pacc) in enumerate(zip(per_class_uacc, per_class_pacc)):
+    for i, (class_, uacc, pacc) in enumerate(zip(classes, per_class_uacc, per_class_pacc)):
         if not cfg.DEBUG:
             wandb.log({
-                f'{run_type} uacc {i}': uacc,
-                f'{run_type} pacc {i}': pacc,
+                f'{run_type} uacc {class_}': uacc,
+                f'{run_type} pacc {class_}': pacc,
                 'step': step,
                 'epoch': epoch,
             })
@@ -205,10 +203,9 @@ if __name__ == '__main__':
     # tracking land with w&b
     if not cfg.DEBUG:
         wandb.init(
-            entity='kigali',
             name=cfg.NAME,
-            project='slum_extent_mapping',
-            tags=['run', 'land cover', 'kigali', ],
+            project='burn_severity_mapping',
+            tags=['run', 'wildfire', 'burn severity' ]
         )
 
     try:
