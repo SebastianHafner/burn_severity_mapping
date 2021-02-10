@@ -10,4 +10,5 @@ DATASET:
   LABEL: 'dnbr'
   THRESHOLDS: [0.15, 0.65]
   CLASSES: ['no', 'low', 'high']
+  COLORS: ['white', 'orange', 'red']
   MODE: 'optical'

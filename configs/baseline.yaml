@@ -1,2 +1,3 @@
 _BASE_: "base.yaml"
+CHECKPOINT: 10
 DEBUG: False

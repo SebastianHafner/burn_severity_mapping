@@ -59,8 +59,37 @@ def site_inference(config_name: str, site: str):
     write_tif(output_file, prediction[:, :, None], transform, crs)
 
 
+def site_label(config_name: str, site: str):
+
+    cfg = config.load_cfg(CONFIG_PATH / f'{config_name}.yaml')
+    dataset = InferenceDataset(cfg, site)
+
+    # config inference directory
+    save_path = ROOT_PATH / 'inference' / config_name
+    save_path.mkdir(exist_ok=True)
+
+    label = dataset.get_arr()
+    transform, crs = dataset.get_geo()
+
+    with torch.no_grad():
+        for index in tqdm(range(len(dataset))):
+            tile = dataset.__getitem__(index)
+            extended_label = tile['label']
+            extended_label = extended_label.squeeze().numpy().astype('uint8')
+            center_label = extended_label[dataset.tile_size:dataset.tile_size * 2, dataset.tile_size:dataset.tile_size * 2]
+
+            y_start = tile['y']
+            y_end = y_start + dataset.tile_size
+            x_start = tile['x']
+            x_end = x_start + dataset.tile_size
+            label[y_start:y_end, x_start:x_end] = center_label
+
+    output_file = save_path / f'label_{site}_{config_name}.tif'
+    write_tif(output_file, label[:, :, None], transform, crs)
+
+
 if __name__ == '__main__':
 
-    config_name = 'rbr_4class'
+    config_name = 'baseline_3class'
     site_inference(config_name, 'elephanthill')
-
+    # site_label(config_name, 'elephanthill')

@@ -51,14 +51,18 @@ class AbstractDataset(torch.utils.data.Dataset):
         return img.astype(np.float32), geotransform, crs
 
     def get_label(self, site: str, x: int, y: int) -> tuple:
-        label = self.cfg.DATASET.LABEL
-        file = self.root_path / site / label / f'{site}_{label}{y:010d}-{x:010d}.tif'
+        label_name = self.cfg.DATASET.LABEL
+        file = self.root_path / site / label_name / f'{site}_{label_name}{y:010d}-{x:010d}.tif'
         img, geotransform, crs = read_tif(file)
         thresholds = self.cfg.DATASET.THRESHOLDS
+        label = np.zeros(img.shape, dtype=np.float32)
+
+        lower_bound = 10e-6
         for i, thresh in enumerate(thresholds):
-            img[img < thresh] = i
-        img[img >= thresholds[-1]] = len(thresholds)
-        return img.astype(np.float32)
+            label[np.logical_and(lower_bound <= img, img < thresh)] = i
+            lower_bound = thresh
+        label[img >= thresholds[-1]] = len(thresholds)
+        return label
 
     def get_s2_feature_selection(self):
         available_features = self.cfg.DATASET.AVAILABLE_S2_BANDS
@@ -170,27 +174,31 @@ class InferenceDataset(AbstractDataset):
         tile_size = self.tile_size
 
         extended_tile = np.zeros((3 * tile_size, 3 * tile_size, self.n_features), dtype=np.float32)
+        extended_label = np.zeros((3 * tile_size, 3 * tile_size, 1), dtype=np.float32)
         for i in range(3):
             for j in range(3):
                 x = x_center + (j - 1) * tile_size
                 y = y_center + (i - 1) * tile_size
                 if self._tile_exists(x, y):
                     tile = self.get_img(self.site, x, y)
+                    label = self.get_label(self.site, x, y)
                 else:
                     tile = np.zeros((tile_size, tile_size, self.n_features), dtype=np.float32)
-
+                    label = np.zeros((tile_size, tile_size, 1), dtype=np.float32)
                 m, n, _ = tile.shape
                 y_start = i * tile_size
                 y_end = y_start + m
                 x_start = j * tile_size
                 x_end = x_start + n
                 extended_tile[y_start:y_end, x_start:x_end, :] = tile
+                extended_label[y_start:y_end, x_start:x_end, :] = label
 
-        dummy_label = np.zeros((extended_tile.shape[0], extended_tile.shape[1], 1), dtype=np.float32)
-        extended_tile, _ = self.transform((extended_tile, dummy_label))
+        # dummy_label = np.zeros((extended_tile.shape[0], extended_tile.shape[1], 1), dtype=np.float32)
+        extended_tile, extended_label = self.transform((extended_tile, extended_label))
 
         item = {
             'img': extended_tile,
+            'label': extended_label,
             'x': x_center,
             'y': y_center,
         }

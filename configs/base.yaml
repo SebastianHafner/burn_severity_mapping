@@ -1,6 +1,6 @@
 SEED: 7
 DEBUG: False
-CHECKPOINT: 5
+CHECKPOINT: 10
 SAVE_CHECKPOINTS: [10]
 OUTPUT_BASE_DIR: '/storage/shafner/burn_severity_mapping/networks/'
 
@@ -12,7 +12,7 @@ MODEL:
   LOSS_TYPE: 'CrossEntropyLoss'
 
 DATALOADER:
-  NUM_WORKER: 8
+  NUM_WORKER: 4
   SHUFFLE: True
 
 DATASET:
@@ -20,6 +20,7 @@ DATASET:
   LABEL: 'dnbr'
   THRESHOLDS: [0.5]
   CLASSES: ['notburnt', 'burnt']
+  COLORS: ['white', 'red']
   MODE: 'optical'
   AVAILABLE_S2_BANDS: ['B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B11', 'B12']
   S2_BANDS: ['B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B11', 'B12']
