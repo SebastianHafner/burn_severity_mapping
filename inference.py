@@ -27,7 +27,7 @@ def site_inference(config_name: str, site: str):
     net.to(device)
     net.eval()
 
-    dataset = InferenceDataset(cfg, site)
+    dataset = InferenceDataset(cfg, site, no_label=True)
 
     # config inference directory
     save_path = ROOT_PATH / 'inference' / config_name
@@ -89,7 +89,9 @@ def site_label(config_name: str, site: str):
 
 
 if __name__ == '__main__':
+    config_name = 'baseline_gamma'
+    sites = ['elephanthill', 'axingmyrkullen', 'brattsjo', 'fagelsjo']
+    for site in sites:
+        site_inference(config_name, site)
 
-    config_name = 'rbr_4class_masked'
-    site_inference(config_name, 'elephanthill')
-    site_label(config_name, 'elephanthill')
+    # site_label(config_name, 'elephanthill')

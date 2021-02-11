@@ -41,24 +41,30 @@ class AbstractDataset(torch.utils.data.Dataset):
 
     def get_s2_data(self, site: str, x: int, y: int) -> tuple:
         lvl = self.cfg.DATASET.S2_PROCESSING_LEVEL
-        file = self.root_path / site / f's2{lvl}' / f'{site}_s2{lvl}{y:010d}-{x:010d}.tif'
+        file = self.root_path / site / f's2{lvl}' / f'{site}_s2{lvl}_{y:010d}-{x:010d}.tif'
         img, geotransform, crs = read_tif(file)
         return img.astype(np.float32), geotransform, crs
 
     def get_s1_data(self, site: str, x: int, y: int) -> tuple:
-        file = self.root_path / site / f's1' / f'{site}_s1{y:010d}-{x:010d}.tif'
+        file = self.root_path / site / f's1' / f'{site}_s1_{y:010d}-{x:010d}.tif'
         img, geotransform, crs = read_tif(file)
         return img.astype(np.float32), geotransform, crs
 
     def get_firemask(self, site: str, x: int, y: int) -> np.ndarray:
-        file = self.root_path / site / 'firemask' / f'{site}_firemask{y:010d}-{x:010d}.tif'
+        file = self.root_path / site / 'firemask' / f'{site}_firemask_{y:010d}-{x:010d}.tif'
         mask, geotransform, crs = read_tif(file)
         return mask.astype(np.float32)
 
-    def get_label(self, site: str, x: int, y: int) -> tuple:
+    def get_label(self, site: str, x: int, y: int) -> np.ndarray:
         label_name = self.cfg.DATASET.LABEL
-        file = self.root_path / site / label_name / f'{site}_{label_name}{y:010d}-{x:010d}.tif'
+        file = self.root_path / site / label_name / f'{site}_{label_name}_{y:010d}-{x:010d}.tif'
         img, geotransform, crs = read_tif(file)
+
+        # already preprocessed label
+        if label_name == 'burnseverity':
+            return img.astype(np.float32)
+
+        # thresholding the product based on config
         thresholds = self.cfg.DATASET.THRESHOLDS
         label = np.zeros(img.shape, dtype=np.float32)
 
@@ -154,10 +160,11 @@ class TrainingDataset(AbstractDataset):
 # dataset for classifying a scene
 class InferenceDataset(AbstractDataset):
 
-    def __init__(self, cfg, site: str):
+    def __init__(self, cfg, site: str, no_label: bool = False):
         super().__init__(cfg)
 
         self.site = site
+        self.no_label = no_label
         self.transform = transforms.Compose([Numpy2Torch()])
 
         # getting all tiles
@@ -168,7 +175,7 @@ class InferenceDataset(AbstractDataset):
         self.n_features = self.get_n_features()
         self.n_out = cfg.MODEL.OUT_CHANNELS
 
-        tile, self.geotransform, self.crs = self.get_s1_data(site, 0, 0)
+        tile, self.geotransform, self.crs = self.get_s2_data(site, 0, 0)
         self.tile_size, _, _ = tile.shape
 
         # getting patch ids and computing extent
@@ -189,10 +196,15 @@ class InferenceDataset(AbstractDataset):
                 y = y_center + (i - 1) * tile_size
                 if self._tile_exists(x, y):
                     tile = self.get_img(self.site, x, y)
-                    label = self.get_label(self.site, x, y)
+
+                    if self.no_label:
+                        label = np.zeros((tile.shape[0], tile.shape[1], 1), dtype=np.float32)
+                    else:
+                        label = self.get_label(self.site, x, y)
                 else:
                     tile = np.zeros((tile_size, tile_size, self.n_features), dtype=np.float32)
                     label = np.zeros((tile_size, tile_size, 1), dtype=np.float32)
+
                 m, n, _ = tile.shape
                 y_start = i * tile_size
                 y_end = y_start + m

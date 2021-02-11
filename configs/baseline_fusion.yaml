@@ -1,0 +1,9 @@
+_BASE_: "base.yaml"
+DEBUG: False
+CHECKPOINT: 20
+
+MODEL:
+  IN_CHANNELS: 13
+
+DATASET:
+  MODE: 'fusion'
