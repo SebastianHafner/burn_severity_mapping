@@ -90,6 +90,6 @@ def site_label(config_name: str, site: str):
 
 if __name__ == '__main__':
 
-    config_name = 'baseline_3class'
+    config_name = 'rbr_4class_masked'
     site_inference(config_name, 'elephanthill')
-    # site_label(config_name, 'elephanthill')
+    site_label(config_name, 'elephanthill')

@@ -116,11 +116,8 @@ def train(net, cfg):
         print(f'loss: {loss_tracker:.3f}')
         if not cfg.DEBUG:
             assert (epoch == epoch_float)
-            print(f'Logging step {global_step} (epoch {epoch_float:.2f}).')
-            model_eval(net, cfg, device, 'train', epoch_float, global_step)
-            model_eval(net, cfg, device, 'validation', epoch_float, global_step)
-        else:
-            break
+        model_eval(net, cfg, device, 'train', epoch_float, global_step)
+        model_eval(net, cfg, device, 'validation', epoch_float, global_step)
         # end of epoch
 
         if epoch in cfg.SAVE_CHECKPOINTS and not cfg.DEBUG:
@@ -145,6 +142,7 @@ def model_eval(net, cfg, device, run_type, epoch, step, max_samples: int = 100):
 
     # total assessment
     oacc = measurer.overall_accuracy()
+    print(f'{oacc:.2f}', flush=True)
     if not cfg.DEBUG:
         wandb.log({
             f'{run_type} oacc': oacc,
@@ -154,18 +152,21 @@ def model_eval(net, cfg, device, run_type, epoch, step, max_samples: int = 100):
 
     # per-class assessment
     classes = cfg.DATASET.CLASSES
-    per_class_uacc = measurer.per_class_uaccuracy()
-    per_class_pacc = measurer.per_class_paccuracy()
-    for i, (class_, uacc, pacc) in enumerate(zip(classes, per_class_uacc, per_class_pacc)):
+    for i, class_ in enumerate(classes):
+
+        # n_pred, n_true = measurer.class_statistics(i)
+        # print(f'{class_}: n predictions {n_pred} - n labels {n_true}')
+
+        f1_score, precision, recall = measurer.class_evaluation(i)
+        print(f'{class_}: f1 score {f1_score:.3f} - precision {precision:.3f} - recall {recall:.3f}')
         if not cfg.DEBUG:
             wandb.log({
-                f'{run_type} uacc {class_}': uacc,
-                f'{run_type} pacc {class_}': pacc,
+                f'{run_type} {class_} f1_score': f1_score,
+                f'{run_type} {class_} precision': precision,
+                f'{run_type} {class_} recall': recall,
                 'step': step,
                 'epoch': epoch,
             })
-
-    print(f'{oacc:.2f}', flush=True)
 
 
 def inference_loop(net, device, dataset, callback, max_samples=None, num_workers=0):

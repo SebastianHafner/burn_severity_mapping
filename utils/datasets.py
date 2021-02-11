@@ -33,9 +33,9 @@ class AbstractDataset(torch.utils.data.Dataset):
             img = img[:, :, self.s1_feature_selection]
         else:
             s1_img, _, _ = self.get_s1_data(site, x, y)
-            s1_img = s1_img[:, :, self.s2_feature_selection]
+            s1_img = s1_img[:, :, self.s1_feature_selection]
             s2_img, _, _ = self.get_s2_data(site, x, y)
-            s2_img = s2_img[:, :, self.s1_feature_selection]
+            s2_img = s2_img[:, :, self.s2_feature_selection]
             img = np.concatenate((s1_img, s2_img), axis=-1)
         return img
 
@@ -50,6 +50,11 @@ class AbstractDataset(torch.utils.data.Dataset):
         img, geotransform, crs = read_tif(file)
         return img.astype(np.float32), geotransform, crs
 
+    def get_firemask(self, site: str, x: int, y: int) -> np.ndarray:
+        file = self.root_path / site / 'firemask' / f'{site}_firemask{y:010d}-{x:010d}.tif'
+        mask, geotransform, crs = read_tif(file)
+        return mask.astype(np.float32)
+
     def get_label(self, site: str, x: int, y: int) -> tuple:
         label_name = self.cfg.DATASET.LABEL
         file = self.root_path / site / label_name / f'{site}_{label_name}{y:010d}-{x:010d}.tif'
@@ -62,6 +67,9 @@ class AbstractDataset(torch.utils.data.Dataset):
             label[np.logical_and(lower_bound <= img, img < thresh)] = i
             lower_bound = thresh
         label[img >= thresholds[-1]] = len(thresholds)
+        if self.cfg.DATASET.USE_FIREMASK:
+            mask = self.get_firemask(site, x, y)
+            label[np.logical_not(mask)] = 0
         return label
 
     def get_s2_feature_selection(self):

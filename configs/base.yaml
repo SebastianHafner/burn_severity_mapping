@@ -18,6 +18,7 @@ DATALOADER:
 DATASET:
   PATH: '/storage/shafner/burn_severity_mapping/wildfire_dataset'
   LABEL: 'dnbr'
+  USE_FIREMASK: False
   THRESHOLDS: [0.5]
   CLASSES: ['notburnt', 'burnt']
   COLORS: ['white', 'red']

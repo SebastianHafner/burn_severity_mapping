@@ -119,27 +119,18 @@ class MultiClassEvaluation(object):
         self.n_classes = n_classes
         self.class_names = class_names
         self.predictions = []
-        self.probabilities = []
         self.labels = []
-        self.labels_soft = []
 
     def add_sample(self, logits: torch.tensor, label: torch.tensor):
 
         sm = torch.nn.Softmax(dim=1)
         prob = sm(logits)
-        prob = prob.float().detach().cpu().numpy()
+        pred = torch.argmax(prob, dim=1)
+        pred = pred.float().detach().cpu().numpy()
         label = label.float().detach().cpu().numpy()
 
-        # for rmse
-        self.probabilities.extend(prob.flatten())
-        self.labels_soft.extend(label.flatten())
-
-        pred = np.argmax(prob, axis=1)
-        label = np.argmax(label, axis=1)
         self.predictions.extend(pred.flatten())
         self.labels.extend(label.flatten())
-
-
 
     def reset(self):
         self.predictions = []
@@ -149,67 +140,34 @@ class MultiClassEvaluation(object):
         acc = np.array(self.predictions) == np.array(self.labels)
         return float(100 * np.sum(acc) / np.size(acc))
 
-    def class_paccuracy(self, class_: int) -> float:
-        bool_vec = np.array(self.labels) == class_
-        if np.size(bool_vec) == 0:
-            return 0
-        label = np.array(self.labels)[bool_vec]
-        pred = np.array(self.predictions)[bool_vec]
-        pacc = pred == label
-        if np.size(pacc) == 0:
-            return 0
-        return float(100 * np.sum(pacc) / np.size(pacc))
+    def class_evaluation(self, class_: int) -> tuple:
+        y_pred = np.array(self.predictions) == class_
+        y_true = np.array(self.labels) == class_
+        tp = np.sum(np.logical_and(y_true, y_pred))
+        fp = np.sum(np.logical_and(y_pred, np.logical_not(y_true)))
+        fn = np.sum(np.logical_and(y_true, np.logical_not(y_pred)))
+        prec = tp / (tp + fp) if tp + fp != 0 else 0
+        rec = tp / (tp + fn) if tp + fn != 0 else 0
+        f1 = 2 * (prec * rec) / (prec + rec) if prec + rec != 0 else 0
+        return f1, prec, rec
 
-    def class_uaccuracy(self, class_: int) -> float:
-        bool_vec = np.array(self.predictions) == class_
-        if np.size(bool_vec) == 0:
-            return 0
-        pred = np.array(self.predictions)[bool_vec]
-        label = np.array(self.labels)[bool_vec]
-        uacc = pred == label
-        if np.size(uacc) == 0:
-            return 0
-        return float(100 * np.sum(uacc) / np.size(uacc))
+    def class_statistics(self, class_: int) -> tuple:
+        y_pred = np.array(self.predictions) == class_
+        y_true = np.array(self.labels) == class_
+        n_pred = np.sum(y_pred)
+        n_true = np.sum(y_true)
+        return n_pred, n_true
 
-    def per_class_paccuracy(self) -> list:
-        pacc = [self.class_paccuracy(i) for i in range(self.n_classes)]
-        return pacc
 
-    def per_class_uaccuracy(self) -> list:
-        uacc = [self.class_uaccuracy(i) for i in range(self.n_classes)]
-        return uacc
-
-    def average_uaccuracy(self) -> float:
-        uacc = [self.class_uaccuracy(i) for i in range(self.n_classes)]
-        avg_uacc = sum(uacc) / self.n_classes
-        return avg_uacc
-
-    def average_paccuracy(self) -> float:
-        uacc = [self.class_paccuracy(i) for i in range(self.n_classes)]
-        avg_uacc = sum(uacc) / self.n_classes
-        return avg_uacc
-
-    def root_mean_square_error(self) -> float:
-        y_hat = np.array(self.probabilities)
-        y = np.array(self.labels_soft)
-        n = y.shape
-        error = np.sqrt(np.sum(np.square(y_hat - y)) / n)
-        return error
-
-    def absolute_confusion_matrix(self) -> np.ndarray:
-        cm = np.zeros((self.n_classes, self.n_classes), dtype=np.int32)
-        # observed class coluns, predicted rows
-        for index, _ in np.ndenumerate(cm):
-            pred_class, obs_class = index
-            pred = np.array(self.predictions) == pred_class
-            obs = np.array(self.labels) == obs_class
-            count = np.sum(np.logical_and(pred, obs))
-            cm[index] = count
-        return cm
-
-    def confusion_matrix(self, relative=False):
-        pass
-
-    def kappa(self) -> float:
-        pass
-
+if __name__ == '__main__':
+    # https://towardsdatascience.com/multi-class-metrics-made-simple-part-ii-the-f1-score-ebe8b2c2ca1
+    classes = ['Cat', 'Fish', 'Hen']
+    measurer = MultiClassEvaluation(len(classes), classes)
+    predictions = [0] * 13 + [1] * 3 + [2] * 9
+    labels = [0] * 4 + [1] * 6 + [2] * 3 + [0] + [1, 1] + [0] + [1, 1] + [2] * 6
+    measurer.predictions = predictions
+    measurer.labels = labels
+    for i, class_ in enumerate(classes):
+        print(class_)
+        f1, prec, rec = measurer.class_evaluation(i)
+        print(f'{f1:.3f}, {prec:.3f}, {rec:.3f}')

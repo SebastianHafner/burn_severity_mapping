@@ -18,7 +18,7 @@ def has_masked_pixels(file: Path) -> bool:
     return True
 
 
-def create_samples_files(path: Path, site: str, split: float = 0.2, seed: int = 7):
+def create_samples_files(path: Path, site: str, split: float = 0.3, seed: int = 7):
 
     mask_folder = path / site / 'mask'
     mask_files = [f for f in mask_folder.glob('**/*')]

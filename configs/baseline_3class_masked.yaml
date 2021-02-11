@@ -1,0 +1,15 @@
+_BASE_: "base.yaml"
+DEBUG: False
+CHECKPOINT: 10
+
+MODEL:
+  OUT_CHANNELS: 3
+  LOSS_TYPE: 'CrossEntropyLoss'
+
+DATASET:
+  LABEL: 'dnbr'
+  USE_FIREMASK: True
+  THRESHOLDS: [0.15, 0.65]
+  CLASSES: ['no', 'low', 'high']
+  COLORS: ['white', 'orange', 'red']
+  MODE: 'optical'
