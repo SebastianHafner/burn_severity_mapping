@@ -89,9 +89,10 @@ def site_label(config_name: str, site: str):
 
 
 if __name__ == '__main__':
-    # config_name = 'baseline_gamma'
-    # sites = ['elephanthill', 'axingmyrkullen', 'brattsjo', 'fagelsjo']
+    config_name = 'rbr'
+    sites = ['elephanthill', 'axingmyrkullen', 'brattsjo', 'fagelsjo']
+    site_inference(config_name, 'fagelsjo')
     # for site in sites:
     #     site_inference(config_name, site)
-    site_inference('baseline_sar', 'axingmyrkullen')
+    # site_inference('baseline_sar', 'axingmyrkullen')
     # site_label(config_name, 'elephanthill')

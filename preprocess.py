@@ -20,20 +20,21 @@ def has_masked_pixels(file: Path) -> bool:
 
 def create_samples_files(path: Path, site: str, split: float = 0.3, seed: int = 7):
 
-    s2_folder = path / site / 's2toa'
-    s2_files = [f for f in s2_folder.glob('**/*')]
+    mask_folder = path / site / 'mask'
+    mask_files = [f for f in mask_folder.glob('**/*')]
 
     np.random.seed(seed)
-    random_numbers = np.random.rand(len(s2_files))
+    random_numbers = np.random.rand(len(mask_files))
 
     samples_train, samples_validation, samples = [], [], []
-    for file, rand in zip(s2_files, random_numbers):
-        coords = file.stem[-21:]
+    for file, rand in zip(mask_files, random_numbers):
+        coords = file.stem.split('_')[-1]
         y, x = coords.split('-')
         sample = {
             'site': site,
             'x': int(x),
             'y': int(y),
+            'has_masked_pixels': has_masked_pixels(file)
         }
 
         if is_square(file):
@@ -51,5 +52,6 @@ def create_samples_files(path: Path, site: str, split: float = 0.3, seed: int = 
 if __name__ == '__main__':
 
     sites = ['axingmyrkullen', 'brattsjo', 'elephanthill', 'fagelsjo']
+    sites = ['fagelsjo']
     for site in sites:
         create_samples_files(ROOT_PATH, site)

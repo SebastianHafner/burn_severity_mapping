@@ -44,6 +44,6 @@ def run_validation(config_name: str, site: str):
 
 
 if __name__ == '__main__':
-    config_name = 'baseline_sar'
+    config_name = 'rbr'
     site = 'elephanthill'
     run_validation(config_name, site)

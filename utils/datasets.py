@@ -27,27 +27,32 @@ class AbstractDataset(torch.utils.data.Dataset):
         mode = self.cfg.DATASET.MODE
         if mode == 'optical':
             img, _, _ = self.get_s2_data(site, x, y)
-            img = img[:, :, self.s2_feature_selection]
         elif mode == 'sar':
             img, _, _ = self.get_s1_data(site, x, y)
-            img = img[:, :, self.s1_feature_selection]
         else:
             s1_img, _, _ = self.get_s1_data(site, x, y)
-            s1_img = s1_img[:, :, self.s1_feature_selection]
             s2_img, _, _ = self.get_s2_data(site, x, y)
-            s2_img = s2_img[:, :, self.s2_feature_selection]
             img = np.concatenate((s1_img, s2_img), axis=-1)
         return img
 
-    def get_s2_data(self, site: str, x: int, y: int) -> tuple:
+    def get_s2_data(self, site: str, x: int, y: int, only_postfire: bool = False) -> tuple:
         lvl = self.cfg.DATASET.S2_PROCESSING_LEVEL
         file = self.root_path / site / f's2{lvl}' / f'{site}_s2{lvl}_{y:010d}-{x:010d}.tif'
         img, geotransform, crs = read_tif(file)
+        img = img[:, :, self.s2_feature_selection]
+
+        if self.cfg.DATASET.INCLUDE_PREFIRE_S2 and not only_postfire:
+            file_prefire = self.root_path / site / f's2{lvl}_prefire' / f'{site}_s2{lvl}_prefire_{y:010d}-{x:010d}.tif'
+            img_prefire, geotransform, crs = read_tif(file_prefire)
+            img_prefire = img_prefire[:, :, self.s2_feature_selection]
+            img = np.concatenate((img_prefire, img), axis=-1)
+
         return img.astype(np.float32), geotransform, crs
 
     def get_s1_data(self, site: str, x: int, y: int) -> tuple:
         file = self.root_path / site / f's1' / f'{site}_s1_{y:010d}-{x:010d}.tif'
         img, geotransform, crs = read_tif(file)
+        img = img[:, :, self.s1_feature_selection]
         return img.astype(np.float32), geotransform, crs
 
     def get_firemask(self, site: str, x: int, y: int) -> np.ndarray:
@@ -100,12 +105,17 @@ class AbstractDataset(torch.utils.data.Dataset):
 
     def get_n_features(self) -> int:
         mode = self.cfg.DATASET.MODE
+        sar_features = len(self.s1_feature_selection)
+        optical_features = len(self.s2_feature_selection)
+        if self.cfg.DATASET.INCLUDE_PREFIRE_S2:
+            optical_features *= 2
+
         if mode == 'sar':
-            return len(self.s1_feature_selection)
+            return sar_features
         if mode == 'optical':
-            return len(self.s2_feature_selection)
+            return optical_features
         else:
-            return len(self.s1_feature_selection) + len(self.s2_feature_selection)
+            return sar_features + optical_features
 
 
 class TrainingDataset(AbstractDataset):
@@ -114,10 +124,13 @@ class TrainingDataset(AbstractDataset):
 
         # TODO: change this to support multiple sites
         self.site = 'elephanthill'
+        self.label_name = cfg.DATASET.LABEL
 
         # loading samples
         samples_file = self.root_path / self.site / f'{run_type}_samples.json'
         self.samples = load_json(samples_file)
+        if cfg.DATASET.LABEL == 'dNBR' or cfg.DATASET.LABEL == 'rbr':
+            self.samples = [s for s in self.samples if not s['has_masked_pixels']]
         self.length = len(self.samples)
 
         if no_augmentation:
