@@ -6,6 +6,7 @@ import numpy as np
 from utils.augmentations import *
 from utils.geofiles import *
 import cv2
+import preprocess
 
 
 class AbstractDataset(torch.utils.data.Dataset):
@@ -128,6 +129,8 @@ class TrainingDataset(AbstractDataset):
 
         # loading samples
         samples_file = self.root_path / self.site / f'{run_type}_samples.json'
+        if not samples_file.exists():
+            preprocess.create_samples_files(self.root_path, self.site)
         self.samples = load_json(samples_file)
         if cfg.DATASET.LABEL == 'dNBR' or cfg.DATASET.LABEL == 'rbr':
             self.samples = [s for s in self.samples if not s['has_masked_pixels']]
@@ -181,7 +184,9 @@ class InferenceDataset(AbstractDataset):
         self.transform = transforms.Compose([Numpy2Torch()])
 
         # getting all tiles
-        tiles_file = self.root_path / site / 'samples.json'
+        tiles_file = self.root_path / site / 'tiles.json'
+        if not tiles_file.exists():
+            preprocess.create_inference_files(self.root_path, site)
         self.tiles = load_json(tiles_file)
         self.length = len(self.tiles)
 
@@ -194,6 +199,11 @@ class InferenceDataset(AbstractDataset):
         # getting patch ids and computing extent
         self.max_x = max([tile['x'] for tile in self.tiles])
         self.max_y = max([tile['y'] for tile in self.tiles])
+
+        bottom_right_tile = self.get_img(self.site, self.max_x, self.max_y)
+        m, n, _ = bottom_right_tile.shape
+        self.overflow_y = self.tile_size - m
+        self.overflow_x = self.tile_size - n
 
     def __getitem__(self, index_center: int) -> dict:
 

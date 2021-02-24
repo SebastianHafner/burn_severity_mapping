@@ -1,12 +1,9 @@
 import torch
-import torchvision.transforms.functional as TF
 from utils.geofiles import *
 from utils.network import load_net
 from experiment_manager.config import config
 import numpy as np
 from utils.datasets import InferenceDataset
-import matplotlib.pyplot as plt
-from utils.visualization import *
 from tqdm import tqdm
 
 
@@ -55,8 +52,10 @@ def site_inference(config_name: str, site: str):
             x_end = x_start + dataset.tile_size
             prediction[y_start:y_end, x_start:x_end] = center_pred
 
+    # removing border effects
+    prediction = prediction[:-dataset.overflow_y, :-dataset.overflow_x, None]
     output_file = save_path / f'pred_{site}_{config_name}.tif'
-    write_tif(output_file, prediction[:, :, None], transform, crs)
+    write_tif(output_file, prediction, transform, crs)
 
 
 def site_label(config_name: str, site: str):
@@ -89,9 +88,12 @@ def site_label(config_name: str, site: str):
 
 
 if __name__ == '__main__':
-    config_name = 'rbr'
-    sites = ['elephanthill', 'axingmyrkullen', 'brattsjo', 'fagelsjo']
-    site_inference(config_name, 'fagelsjo')
+    config_name = 'rbr_prefire'
+    sites = ['elephanthill2018aoi1', 'elephanthill2018aoi2', 'elephanthill2018aoi3', 'elephanthill2018aoi4',
+             'fagelsjo']
+    for site in sites:
+        site_inference(config_name, site)
+    # site_inference(config_name, 'elephanthill2018aoi4')
     # for site in sites:
     #     site_inference(config_name, site)
     # site_inference('baseline_sar', 'axingmyrkullen')
