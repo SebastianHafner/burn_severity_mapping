@@ -123,15 +123,17 @@ class TrainingDataset(AbstractDataset):
     def __init__(self, cfg, run_type: str, no_augmentation: bool = False):
         super().__init__(cfg)
 
-        # TODO: change this to support multiple sites
-        self.site = 'elephanthill'
+        self.sites = cfg.DATASET.SITES
         self.label_name = cfg.DATASET.LABEL
+        self.samples = []
 
         # loading samples
-        samples_file = self.root_path / self.site / f'{run_type}_samples.json'
-        if not samples_file.exists():
-            preprocess.create_samples_files(self.root_path, self.site)
-        self.samples = load_json(samples_file)
+        for site in self.sites:
+            samples_file = self.root_path / site / f'{run_type}_samples.json'
+            if not samples_file.exists():
+                preprocess.create_samples_files(self.root_path, site)
+            site_samples = load_json(samples_file)
+            self.samples += site_samples
         if cfg.DATASET.LABEL == 'dNBR' or cfg.DATASET.LABEL == 'rbr':
             self.samples = [s for s in self.samples if not s['has_masked_pixels']]
         self.length = len(self.samples)

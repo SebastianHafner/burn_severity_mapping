@@ -88,12 +88,11 @@ def site_label(config_name: str, site: str):
 
 
 if __name__ == '__main__':
-    config_name = 'rbr'
-    sites = ['fagelsjo', 'ljusdals', 'storbrattan', 'trangslet']
-    for site in sites:
-        site_inference(config_name, site)
-    # site_inference(config_name, 'elephanthill2018aoi4')
+    config_name = 'rbr_prefire'
+    sites = ['elephanthill2018aoi1', 'elephanthill2018aoi2', 'elephanthill2018aoi3', 'elephanthill2018aoi4',
+             'fagelsjo', 'ljusdals', 'storbrattan', 'trangslet']
     # for site in sites:
     #     site_inference(config_name, site)
-    # site_inference('baseline_sar', 'axingmyrkullen')
-    # site_label(config_name, 'elephanthill')
+    labeled_sites = ['fagelsjo', 'trangslet']
+    for site in labeled_sites:
+        site_label(config_name, site)

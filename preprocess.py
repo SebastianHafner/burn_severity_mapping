@@ -19,7 +19,7 @@ def has_masked_pixels(file: Path) -> bool:
     return True
 
 
-def create_samples_files(path: Path, site: str, split: float = 0.3, seed: int = 7):
+def create_samples_files(path: Path, site: str, split: float = 0.1, seed: int = 7):
     print(f'preprocessing {site}...')
 
     mask_folder = path / site / 'mask'
@@ -73,6 +73,6 @@ def create_inference_files(path: Path, site: str, input_data: str = 's2toa'):
 if __name__ == '__main__':
 
     sites = ['axingmyrkullen', 'brattsjo', 'elephanthill', 'fagelsjo']
-    sites = ['fagelsjo']
+    sites = ['fagelsjo', 'elephanthill', 'trangslet']
     for site in sites:
         create_samples_files(ROOT_PATH, site)
