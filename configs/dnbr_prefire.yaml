@@ -2,6 +2,9 @@ _BASE_: "base.yaml"
 DEBUG: False
 CHECKPOINT: 20
 
+MODEL:
+  IN_CHANNELS: 20
+
 DATASET:
   PATH: '/storage/shafner/burn_severity_mapping/wildfire_dataset'
   LABEL: 'dnbr'
