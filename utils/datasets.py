@@ -73,15 +73,13 @@ class AbstractDataset(torch.utils.data.Dataset):
         # thresholding the product based on config
         thresholds = self.cfg.DATASET.THRESHOLDS
         label = np.zeros(img.shape, dtype=np.float32)
+        for thresh in thresholds:
+            label += img > thresh
 
-        lower_bound = 10e-6
-        for i, thresh in enumerate(thresholds):
-            label[np.logical_and(lower_bound <= img, img < thresh)] = i
-            lower_bound = thresh
-        label[img >= thresholds[-1]] = len(thresholds)
         if self.cfg.DATASET.USE_FIREMASK:
             mask = self.get_firemask(site, x, y)
             label[np.logical_not(mask)] = 0
+
         return label
 
     def get_s2_feature_selection(self):
