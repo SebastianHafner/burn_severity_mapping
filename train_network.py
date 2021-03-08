@@ -69,8 +69,8 @@ def train(net, cfg):
     elif loss_type == 'SoftCrossEntropyLoss':
         criterion = soft_cross_entropy_loss
     elif loss_type == 'WeightedCrossEntropyLoss':
-        # TODO: this is not implemented
-        class_weights = torch.tensor(dataset.class_weights).to(device)
+        class_weights = dataset.class_weights()
+        class_weights = torch.tensor(class_weights).to(device).float()
         criterion = torch.nn.CrossEntropyLoss(weight=class_weights)
     elif loss_type == 'RMSE':
         criterion = root_mean_square_error_loss

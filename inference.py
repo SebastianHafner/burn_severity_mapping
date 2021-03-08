@@ -88,7 +88,7 @@ def site_label(config_name: str, site: str):
 
 
 if __name__ == '__main__':
-    config_name = 'dnbr_sar'
+    config_name = 'dnbr_sar_weighted'
     # sites = ['elephanthill2018aoi1', 'elephanthill2018aoi2', 'elephanthill2018aoi3', 'elephanthill2018aoi4',
     #          'fagelsjo', 'ljusdalcomplex', 'trangslet', 'elephanthill']
     # for site in sites:

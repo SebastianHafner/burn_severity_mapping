@@ -1,0 +1,20 @@
+_BASE_: "base.yaml"
+DEBUG: False
+CHECKPOINT: 20
+
+TRAINER:
+  LR: 1e-5
+
+MODEL:
+  IN_CHANNELS: 3
+  LOSS_TYPE: 'WeightedCrossEntropyLoss'
+
+DATASET:
+  PATH: '/storage/shafner/burn_severity_mapping/wildfire_dataset'
+  LABEL: 'dnbr'
+  USE_FIREMASK: True
+  THRESHOLDS: [50, 350, 650]
+  CLASSES: ['unburnt', 'low', 'moderate', 'high']
+  MODE: 'sar'
+  AVAILABLE_S1_BANDS: ['kCR', 'kVH', 'kVV']
+  S1_BANDS: ['kCR', 'kVH', 'kVV']

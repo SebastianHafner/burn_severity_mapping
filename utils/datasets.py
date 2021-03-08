@@ -172,6 +172,21 @@ class TrainingDataset(AbstractDataset):
         sampler = torch_data.WeightedRandomSampler(weights=weights, num_samples=self.length, replacement=True)
         return sampler
 
+    def class_weights(self) -> list:
+        n_classes = self.cfg.MODEL.OUT_CHANNELS
+        n_class_pixels = np.zeros(n_classes)
+        bins = np.arange(-0.5, n_classes, 1)
+        for sample in self.samples:
+            x, y, site = sample['x'], sample['y'], sample['site']
+            label = self.get_label(site, x, y)
+            hist_sample, _ = np.histogram(label, bins=bins)
+            n_class_pixels += hist_sample
+
+        # them more samples, the smaller the weight
+        weights = n_class_pixels / np.sum(n_class_pixels)
+        weights = 1 / weights
+        return weights.copy()
+
 
 # dataset for classifying a scene
 class InferenceDataset(AbstractDataset):
