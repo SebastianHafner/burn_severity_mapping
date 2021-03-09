@@ -18,7 +18,7 @@ DATALOADER:
 DATASET:
   PATH: '/storage/shafner/burn_severity_mapping/wildfire_dataset'
   LABEL: 'burnseverity'
-  SITES: ['elephanthill', 'fagelsjo', 'trangslet']
+  SITES: ['elephanthill', 'fagelsjo', 'trangslet', 'ljusdalcomplex']
   USE_FIREMASK: True
   THRESHOLDS: []
   CLASSES: ['unburnt', 'low', 'moderate', 'high']

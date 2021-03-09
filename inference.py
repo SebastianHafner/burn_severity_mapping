@@ -88,11 +88,15 @@ def site_label(config_name: str, site: str):
 
 
 if __name__ == '__main__':
-    config_name = 'dnbr_sar_weighted'
+    config_name = 'dnbr_sar_sweden'
+    # site_inference(config_name, 'elephanthill')
     # sites = ['elephanthill2018aoi1', 'elephanthill2018aoi2', 'elephanthill2018aoi3', 'elephanthill2018aoi4',
     #          'fagelsjo', 'ljusdalcomplex', 'trangslet', 'elephanthill']
-    # for site in sites:
-    #     site_inference(config_name, site)
-    labeled_sites = ['fagelsjo', 'trangslet', 'elephanthill']
-    for site in labeled_sites:
-        site_label(config_name, site)
+    # canadian_sites = ['elephanthill2018aoi1', 'elephanthill2018aoi2', 'elephanthill2018aoi3', 'elephanthill2018aoi4',
+    #                   'elephanthill']
+    swedish_sites = ['fagelsjo', 'ljusdalcomplex', 'trangslet']
+    for site in swedish_sites:
+        site_inference(config_name, site)
+    # labeled_sites = ['fagelsjo', 'trangslet', 'elephanthill']
+    # for site in labeled_sites:
+    #     site_label(config_name, site)
