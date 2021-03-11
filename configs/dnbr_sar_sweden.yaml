@@ -8,7 +8,7 @@ MODEL:
 DATASET:
   PATH: '/storage/shafner/burn_severity_mapping/wildfire_dataset'
   LABEL: 'dnbr'
-  SITES: ['elephanthill', 'fagelsjo', 'trangslet', 'ljusdalcomplex']
+  SITES: ['fagelsjo', 'trangslet', 'ljusdalcomplex']
   USE_FIREMASK: True
   THRESHOLDS: [100, 270, 440]
   CLASSES: ['unburnt', 'low', 'moderate', 'high']
