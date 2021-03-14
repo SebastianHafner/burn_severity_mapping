@@ -54,7 +54,7 @@ class AbstractDataset(torch.utils.data.Dataset):
         file = self.root_path / site / f's1' / f'{site}_s1_{y:010d}-{x:010d}.tif'
         img, geotransform, crs = read_tif(file)
         img = img[:, :, self.s1_feature_selection]
-        return img.astype(np.float32), geotransform, crs
+        return np.nan_to_num(img.astype(np.float32)), geotransform, crs
 
     def get_firemask(self, site: str, x: int, y: int) -> np.ndarray:
         file = self.root_path / site / 'firemask' / f'{site}_firemask_{y:010d}-{x:010d}.tif'
