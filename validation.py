@@ -77,7 +77,7 @@ def validate_dnbr(config_name: str, site: str):
 
 
 if __name__ == '__main__':
-    config_name = 'dnbr_validation_canada'
+    config_name = 'dnbr_optical_canada'
     site = 'elephanthill'
     # run_validation(config_name, site)
-    validate_dnbr(config_name, site)
+    validate_dnbr('dnbr_validation_canada', site)
