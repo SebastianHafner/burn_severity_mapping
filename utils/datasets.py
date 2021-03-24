@@ -56,31 +56,34 @@ class AbstractDataset(torch.utils.data.Dataset):
         img = img[:, :, self.s1_feature_selection]
         return img.astype(np.float32), geotransform, crs
 
-    def get_firemask(self, site: str, x: int, y: int) -> np.ndarray:
-        file = self.root_path / site / 'firemask' / f'{site}_firemask_{y:010d}-{x:010d}.tif'
-        mask, geotransform, crs = read_tif(file)
-        return mask.astype(np.float32)
+    def get_auxilliary_data(self, data_name: str, site: str, x: int, y: int):
+        file = self.root_path / site / data_name / f'{site}_{data_name}_{y:010d}-{x:010d}.tif'
+        data, geotransform, crs = read_tif(file)
+        return data.astype(np.float32)
 
     def get_label(self, site: str, x: int, y: int) -> np.ndarray:
         label_name = self.cfg.DATASET.LABEL
-        file = self.root_path / site / label_name / f'{site}_{label_name}_{y:010d}-{x:010d}.tif'
-        img, geotransform, crs = read_tif(file)
+        img = self.get_auxilliary_data(label_name, site, x, y)
 
         # already preprocessed label
         if label_name == 'burnseverity':
             return img.astype(np.float32)
 
         # thresholding the product based on config
-        thresholds = self.cfg.DATASET.THRESHOLDS
-        label = np.zeros(img.shape, dtype=np.float32)
-        for thresh in thresholds:
-            label += img > thresh
+        label = self.threshold(img, self.cfg.DATASET.THRESHOLDS)
 
         if self.cfg.DATASET.USE_FIREMASK:
-            mask = self.get_firemask(site, x, y)
+            mask = self.get_auxilliary_data('firemask', site, x, y)
             label[np.logical_not(mask)] = 0
 
         return label
+
+    @ staticmethod
+    def threshold(arr: np.ndarray, thresholds: list) -> np.ndarray:
+        arr_thresholded = np.zeros(arr.shape, dtype=np.float32)
+        for thresh in thresholds:
+            arr_thresholded += arr > thresh
+        return arr_thresholded
 
     def get_s2_feature_selection(self):
         available_features = self.cfg.DATASET.AVAILABLE_S2_BANDS
@@ -118,10 +121,10 @@ class AbstractDataset(torch.utils.data.Dataset):
 
 
 class TrainingDataset(AbstractDataset):
-    def __init__(self, cfg, run_type: str, no_augmentation: bool = False):
+    def __init__(self, cfg, run_type: str, no_augmentation: bool = False, site: str = None):
         super().__init__(cfg)
 
-        self.sites = cfg.DATASET.SITES
+        self.sites = cfg.DATASET.SITES if site is None else [site]
         self.label_name = cfg.DATASET.LABEL
         self.samples = []
 
