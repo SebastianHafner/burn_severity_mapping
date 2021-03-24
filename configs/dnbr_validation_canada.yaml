@@ -1,0 +1,4 @@
+_BASE_: "dnbr_optical.yaml"
+
+DATASET:
+  THRESHOLDS: [50, 350, 650]
