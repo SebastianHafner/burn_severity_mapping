@@ -1,0 +1,21 @@
+_BASE_: "base.yaml"
+DEBUG: False
+CHECKPOINT: 20
+
+MODEL:
+  IN_CHANNELS: 23
+
+DATASET:
+  PATH: '/storage/shafner/burn_severity_mapping/wildfire_dataset'
+  LABEL: 'dnbr'
+  SITES: ['elephanthill', 'fagelsjo', 'trangslet', 'ljusdalcomplex']
+  USE_FIREMASK: True
+  THRESHOLDS: [100, 270, 440]
+  CLASSES: ['unburnt', 'low', 'moderate', 'high']
+  MODE: 'fusion'
+  AVAILABLE_S1_BANDS: ['kCR', 'kVH', 'kVV']
+  S1_BANDS: ['kCR', 'kVH', 'kVV']
+  AVAILABLE_S2_BANDS: ['B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B11', 'B12']
+  S2_BANDS: ['B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B11', 'B12']
+  S2_PROCESSING_LEVEL: 'toa'
+  INCLUDE_PREFIRE_S2: True
