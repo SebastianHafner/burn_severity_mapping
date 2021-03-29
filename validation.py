@@ -37,14 +37,18 @@ def run_validation(config_name: str, site: str):
     print(f'{oacc:.2f}', flush=True)
 
     # confusion matrix
+    np.set_printoptions(suppress=True)
     print(measurer.confusion_matrix())
 
     # per-class assessment
     classes = cfg.DATASET.CLASSES
     for i, class_ in enumerate(classes):
 
-        f1_score, precision, recall = measurer.class_evaluation(i)
+        f1_score, precision, recall = measurer.f1_score_precision_recall(i)
         print(f'{class_}: f1 score {f1_score:.3f} - precision {precision:.3f} - recall {recall:.3f}')
+
+        uacc, pacc = measurer.users_producers_accuracy(i)
+        print(f"{class_}: user's accuracy {uacc:.2f} - producer's accuracy {pacc:.2f}")
 
 
 def validation_stats(config_name: str, site: str):
@@ -92,6 +96,7 @@ def validate_dnbr(config_name: str, site: str):
     print(f'{oacc:.2f}', flush=True)
 
     # confusion matrix
+    np.set_printoptions(suppress=True)
     print(measurer.confusion_matrix())
 
     # per-class assessment
@@ -106,7 +111,7 @@ if __name__ == '__main__':
     config_name = 'dnbr_fusion_elephanthill'
     site = 'elephanthill'
 
-    # run_validation(config_name, site)
+    run_validation(config_name, site)
     # validate_dnbr(config_name, site)
-    validation_stats(config_name, site)
+    # validation_stats(config_name, site)
 

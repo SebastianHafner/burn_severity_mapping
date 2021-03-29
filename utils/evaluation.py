@@ -102,7 +102,7 @@ class MultiClassEvaluation(object):
         acc = np.array(self.predictions) == np.array(self.labels)
         return float(100 * np.sum(acc) / np.size(acc))
 
-    def class_evaluation(self, class_: int) -> tuple:
+    def f1_score_precision_recall(self, class_: int) -> tuple:
         y_pred = np.array(self.predictions) == class_
         y_true = np.array(self.labels) == class_
         tp = np.sum(np.logical_and(y_true, y_pred))
@@ -113,6 +113,16 @@ class MultiClassEvaluation(object):
         f1 = 2 * (prec * rec) / (prec + rec) if prec + rec != 0 else 0
         return f1, prec, rec
 
+    def users_producers_accuracy(self, class_: int) -> tuple:
+        y_pred = np.array(self.predictions) == class_
+        y_true = np.array(self.labels) == class_
+        tp = np.sum(np.logical_and(y_true, y_pred))
+        fp = np.sum(np.logical_and(y_pred, np.logical_not(y_true)))
+        fn = np.sum(np.logical_and(y_true, np.logical_not(y_pred)))
+        uacc = tp / (tp + fp) * 100 if tp + fp != 0 else 0
+        pacc = tp / (tp + fn) * 100 if tp + fn != 0 else 0
+        return uacc, pacc
+
     def class_statistics(self, class_: int) -> tuple:
         y_pred = np.array(self.predictions) == class_
         y_true = np.array(self.labels) == class_
@@ -121,9 +131,14 @@ class MultiClassEvaluation(object):
         return n_pred, n_true
 
     def confusion_matrix(self) -> np.ndarray:
-        cm = np.zeros(self.n_classes, self.n_classes)
+        cm = np.zeros((self.n_classes + 1, self.n_classes + 1))
         for pred, label in zip(self.predictions, self.labels):
-            cm[label, pred] += 1
+            cm[int(pred), int(label)] += 1
+        # adding row and column for total
+        total_pred = np.sum(cm, axis=0)
+        total_label = np.sum(cm, axis=1)
+        cm[-1, ] = total_pred
+        cm[:, -1] = total_label
         return cm
 
 
