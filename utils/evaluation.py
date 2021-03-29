@@ -120,6 +120,12 @@ class MultiClassEvaluation(object):
         n_true = np.sum(y_true)
         return n_pred, n_true
 
+    def confusion_matrix(self) -> np.ndarray:
+        cm = np.zeros(self.n_classes, self.n_classes)
+        for pred, label in zip(self.predictions, self.labels):
+            cm[label, pred] += 1
+        return cm
+
 
 if __name__ == '__main__':
     # https://towardsdatascience.com/multi-class-metrics-made-simple-part-ii-the-f1-score-ebe8b2c2ca1
