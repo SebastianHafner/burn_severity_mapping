@@ -9,7 +9,7 @@ CONFIG_PATH = Path('/home/shafner/burn_severity_mapping/configs')
 NETWORK_PATH = Path('/storage/shafner/burn_severity_mapping/networks')
 
 
-def run_validation(config_name: str, site: str):
+def run_validation(config_name: str, sites: list):
 
     # loading cfg and network
     cfg = config.load_cfg(CONFIG_PATH / f'{config_name}.yaml')
@@ -22,7 +22,7 @@ def run_validation(config_name: str, site: str):
 
     measurer = evaluation.MultiClassEvaluation(cfg.MODEL.OUT_CHANNELS)
 
-    dataset = datasets.TrainingDataset(cfg, 'validation', no_augmentation=True, site=site)
+    dataset = datasets.TrainingDataset(cfg, 'validation', no_augmentation=True, sites=sites)
 
     def evaluation_callback(x, y, z):
         # x img y label z logits
@@ -108,10 +108,11 @@ def validate_dnbr(config_name: str, site: str):
 
 
 if __name__ == '__main__':
-    config_name = 'dnbr_fusion_elephanthill'
-    site = 'elephanthill'
+    config_name = 'dnbr_optical_sweden'
+    sites_se = ['fagelsjo', 'ljusdalcomplex', 'trangslet']
 
-    run_validation(config_name, site)
+    # run_validation(config_name, sites_se)
+    run_validation(config_name, sites_se)
     # validate_dnbr(config_name, site)
     # validation_stats(config_name, site)
 

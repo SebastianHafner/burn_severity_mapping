@@ -88,7 +88,7 @@ def site_label(config_name: str, site: str):
 
 
 if __name__ == '__main__':
-    config_name = 'dnbr_fusion_elephanthill'
+    config_name = 'dnbr_optical_canada'
     # site_inference(config_name, 'elephanthill')
     # sites = ['elephanthill2018aoi1', 'elephanthill2018aoi2', 'elephanthill2018aoi3', 'elephanthill2018aoi4',
     #          'fagelsjo', 'ljusdalcomplex', 'trangslet', 'elephanthill']
@@ -97,7 +97,10 @@ if __name__ == '__main__':
     # swedish_sites = ['fagelsjo', 'ljusdalcomplex', 'trangslet']
     # for site in swedish_sites:
     #     site_inference(config_name, site)
-    site_inference(config_name, 'elephanthill')
+    new_canada_sites = ['bc2018g80340', 'bc2018g82215', 'bc2018r91947', 'bc2018r92033']
+    new_canada_sites = ['bc2018g80340']
+    for site in new_canada_sites:
+        site_inference(config_name, site)
     # labeled_sites = ['fagelsjo', 'trangslet', 'elephanthill']
     # for site in labeled_sites:
     #     site_label(config_name, site)

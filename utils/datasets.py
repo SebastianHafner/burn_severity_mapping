@@ -121,10 +121,10 @@ class AbstractDataset(torch.utils.data.Dataset):
 
 
 class TrainingDataset(AbstractDataset):
-    def __init__(self, cfg, run_type: str, no_augmentation: bool = False, site: str = None):
+    def __init__(self, cfg, run_type: str, no_augmentation: bool = False, sites: [] = None):
         super().__init__(cfg)
 
-        self.sites = cfg.DATASET.SITES if site is None else [site]
+        self.sites = cfg.DATASET.SITES if sites is None else sites
         self.label_name = cfg.DATASET.LABEL
         self.samples = []
 
