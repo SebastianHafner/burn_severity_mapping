@@ -98,9 +98,10 @@ if __name__ == '__main__':
     # for site in swedish_sites:
     #     site_inference(config_name, site)
     new_canada_sites = ['bc2018g80340', 'bc2018g82215', 'bc2018r91947', 'bc2018r92033']
-    new_canada_sites = ['bc2018g80340']
     for site in new_canada_sites:
-        site_inference(config_name, site)
+        # site_inference(config_name, site)
+        pass
+    site_inference(config_name, 'bc2018complex')
     # labeled_sites = ['fagelsjo', 'trangslet', 'elephanthill']
     # for site in labeled_sites:
     #     site_label(config_name, site)
