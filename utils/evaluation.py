@@ -36,7 +36,7 @@ def model_eval(net, cfg, device, run_type, epoch, step, max_samples: int = 100):
         # n_pred, n_true = measurer.class_statistics(i)
         # print(f'{class_}: n predictions {n_pred} - n labels {n_true}')
 
-        f1_score, precision, recall = measurer.class_evaluation(i)
+        f1_score, precision, recall = measurer.f1_score_precision_recall(i)
         print(f'{class_}: f1 score {f1_score:.3f} - precision {precision:.3f} - recall {recall:.3f}')
         if not cfg.DEBUG:
             wandb.log({
