@@ -88,7 +88,7 @@ def site_label(config_name: str, site: str):
 
 
 if __name__ == '__main__':
-    config_name = 'dnbr_optical_sweden'
+    config_name = 'dnbr_optical_sweden_newthresh'
 
     canada_sites = ['bc2018g80340', 'bc2018g82215', 'bc2018r91947', 'bc2018r92033', 'bc2018complex',
                     'bc2018r11498', 'bc2018r11796', 'bc2018r21721', 'elephanthill']
