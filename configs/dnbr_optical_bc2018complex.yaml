@@ -1,0 +1,6 @@
+_BASE_: "dnbr_optical_canada.yaml"
+DEBUG: False
+
+DATASET:
+  THRESHOLDS: [100, 350, 550]
+  SITES: ['elephanthill', 'fagelsjo', 'trangslet', 'ljusdalcomplex', 'bc2018complex']
