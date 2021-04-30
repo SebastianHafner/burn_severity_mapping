@@ -1,0 +1,5 @@
+_BASE_: "dnbr_optical.yaml"
+DEBUG: False
+
+DATASET:
+  THRESHOLDS: [150, 350, 500]
