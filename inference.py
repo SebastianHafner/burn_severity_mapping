@@ -102,7 +102,8 @@ if __name__ == '__main__':
     for site in swedish_sites:
         # site_inference(config_name, site)
         pass
-    site_inference('dnbr_optical_canada_extended', 'bc2017k20637')
+    # site_inference('dnbr_optical_canada_extended', 'bc2017k20637')
+    site_label('dnbr_optical_canada_extended', 'elephanthill')
     # labeled_sites = ['fagelsjo', 'trangslet', 'elephanthill']
     # for site in labeled_sites:
     #     site_label(config_name, site)
